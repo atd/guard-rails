@@ -1,8 +1,10 @@
 require 'guard/compat/plugin'
+require 'guard/watcher'
 
 module Guard
   class Rails < Plugin
     require 'guard/rails/runner'
+    require 'guard/rails/railtie' if defined? ::Rails::Railtie
 
     attr_reader :options, :runner
 
@@ -22,8 +24,13 @@ module Guard
       zeus: false,
     }
 
+    REMOTE_PRY_SESSION_NOTIFIER = '.guard-rails-pry-session'
+
     def initialize(options = {})
+      options[:watchers] |= [remote_pry_session_watcher]
+
       super
+
       @options = DEFAULT_OPTIONS.merge(options)
 
       @runner = Runner.new(@options)
@@ -52,10 +59,22 @@ module Guard
       runner.stop
     end
 
-    def run_on_changes(paths)
-      reload
+    def run_on_changes(original_paths)
+      paths = original_paths.dup
+
+      if paths.delete(REMOTE_PRY_SESSION_NOTIFIER)
+        system('pry-remote')
+      else
+        reload
+      end
     end
 
     alias :run_on_change :run_on_changes
+
+    private
+
+    def remote_pry_session_watcher
+      Watcher.new REMOTE_PRY_SESSION_NOTIFIER
+    end
   end
 end

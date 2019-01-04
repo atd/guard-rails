@@ -56,7 +56,10 @@ module Guard
                       options[:environment]
                     end
 
-        { "RAILS_ENV" => rails_env }
+        {
+          "RAILS_ENV" => rails_env,
+          'GUARD_RAILS' => '1'
+        }
       end
 
       def pid_file
